@@ -16,7 +16,7 @@ CODEBUILD_URL = "https://{0}.console.aws.amazon.com/codebuild/home?{0}#/builds/{
 
 # Start Message format
 SLACK_MESSAGE_TEXT = '''\
-*{0}* `{1}` {2} <{3}|CodeBuild>
+*{0}* `{1}` {2}
 '''
 
 logger = logging.getLogger()
@@ -60,8 +60,7 @@ def handler(event, context):
                 "text": SLACK_MESSAGE_TEXT.format(
                     project,
                     state,
-                    STATE_ICONS.get(state, ''),
-                    url),
+                    STATE_ICONS.get(state, '')),
                 "footer":      project,
                 "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png",
                 "ts":          unix_time
