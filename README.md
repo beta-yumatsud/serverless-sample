@@ -64,8 +64,10 @@ $ sls remove -v
   * ただし本来はあまりよくないので、terraformに移行するタイミングでkmsを使うようにすればいいか
 
 # 参考
-* 
 * CloudWatch Event
   * [CodePipeline](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/events/EventTypes.html#codepipeline_event_type)
   * [CodeBuild](https://docs.aws.amazon.com/ja_jp/codebuild/latest/userguide/sample-build-notifications.html#sample-build-notifications-ref)
   * [ECS](https://docs.aws.amazon.com/ja_jp/AmazonECS/latest/developerguide/ecs_cwe_events.html)
+* Slack
+  * [Slackのメッセージの見栄えを良くする](https://tmg0525.hatenadiary.jp/entry/2017/10/15/120336)
+  * [SlackのIncoming Webhooksを使い倒す](https://qiita.com/ik-fib/items/b4a502d173a22b3947a0)

@@ -56,15 +56,15 @@ functions:
                 - FAILED
                 - STOPPED
                 - SUCCEEDED
-  ecs:
-    handler: ecs.handler
-    events:
-      - cloudwatchEvent:
-          event:
-            source:
-              - aws.ecs
-            detail-type:
-              - ECS Task State Change
+#  ecs:
+#    handler: ecs.handler
+#    events:
+#      - cloudwatchEvent:
+#          event:
+#            source:
+#              - aws.ecs
+#            detail-type:
+#              - ECS Task State Change
 
 # you can add CloudFormation resource templates here
 #resources:

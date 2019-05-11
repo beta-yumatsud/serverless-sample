@@ -2,9 +2,10 @@ import json
 import os
 import boto3
 import logging
-
+import time
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
+from datetime import datetime
 
 # Slack
 HOOK_URL      = os.environ['WEBHOOK_URL']
@@ -18,19 +19,19 @@ ECS_URL          = "https://{0}.console.aws.amazon.com/ecs/home?region={0}#/clus
 
 # Start Message format
 SLACK_START_MESSAGE_FORMAT = '''\
-*{0}* `{1}` {3} <{2}|CodePipeline>
-```execution_id: {4}```
-{5}
+*{0}* `{1}` {2}
+```execution_id: {3}```
+{4}
 '''
 
 SLACK_FAILED_MESSAGE_FORMAT = '''\
-*{0}* _{1}_ `{2}` {3} <{4}|CodePipeline>
-```execution_id: {5}```
+*{0}* _{1}_ `{2}` {3}
+```execution_id: {4}```
 '''
 
-# Message format
-SLACK_MESSAGE_TEXT = '''\
-*{0}* _{1}_ `{2}` {3} <{4}|CodePipeline>
+SLACK_SUCCESS_MESSAGE_FORMAT = '''\
+*{0}* `{1}` {2}
+```execution_id: {3}```
 '''
 
 logger = logging.getLogger()
@@ -42,54 +43,68 @@ STATE_ICONS = {
     'SUCCEEDED': ':nicerun:'
 }
 
+STATE_COLORS = {
+    'STARTED': '#2E64FE',
+    'FAILED': 'danger',
+    'SUCCEEDED': 'good'
+}
+
 def handler(event, context):
     logger.debug("Event: " + str(event))
 
     # event info
     region       = event["region"]
+    date_str     = event["time"]
     pipeline     = event["detail"]["pipeline"]
     version      = event["detail"]["version"]
     execution_id = event["detail"]["execution-id"]
     state        = event["detail"]["state"]
     stage        = event["detail"]["stage"]
 
-    url    = CODEPIPELINE_URL.format(region, pipeline)
+    url       = CODEPIPELINE_URL.format(region, pipeline)
+    date      = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
+    unix_time = int(time.mktime(date.timetuple()))
+
     if state == 'STARTED' and stage == 'Source':
         detail = pipeline_details(pipeline, version, region)
-        slack_message = {
-            'channel': SLACK_CHANNEL,
-            'text': SLACK_START_MESSAGE_FORMAT.format(
-                pipeline,
-                state,
-                url,
-                STATE_ICONS.get(state, ''),
-                execution_id,
-                detail),
-            'parse': 'none'
-        }
+        text = SLACK_START_MESSAGE_FORMAT.format(
+            pipeline,
+            state,
+            STATE_ICONS.get(state, ''),
+            execution_id,
+            detail)
     elif state == 'FAILED':
-        slack_message = {
-            'channel': SLACK_CHANNEL,
-            'text': SLACK_FAILED_MESSAGE_FORMAT.format(
-                pipeline,
-                stage,
-                state,
-                STATE_ICONS.get(state, ''),
-                url,
-                execution_id),
-            'parse': 'none'
-        }
+        text = SLACK_FAILED_MESSAGE_FORMAT.format(
+            pipeline,
+            stage,
+            state,
+            STATE_ICONS.get(state, ''),
+            execution_id)
+    elif state == 'SUCCEEDED' and stage == 'Deploy':
+        text = SLACK_SUCCESS_MESSAGE_FORMAT.format(
+            pipeline,
+            state,
+            STATE_ICONS.get(state, ''),
+            execution_id)
     else:
-        slack_message = {
-            'channel': SLACK_CHANNEL,
-            'text': SLACK_MESSAGE_TEXT.format(
-                pipeline,
-                stage,
-                state,
-                STATE_ICONS.get(state, ''),
-                url),
-            'parse': 'none'
-        }
+        return
+
+    slack_message = {
+        'channel': SLACK_CHANNEL,
+        'parse':  'none',
+        'attachments': [
+            {
+                "fallback":    "Code Pipeline attachments",
+                "color":       STATE_COLORS.get(state, ''),
+                "title":       "CodePipeline",
+                "title_link":  url,
+                "text":        text,
+                "footer":      pipeline,
+                "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png",
+                "ts":          unix_time
+            }
+        ]
+    }
 
     req = Request(HOOK_URL, json.dumps(slack_message).encode('utf-8'))
     try:
